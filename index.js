@@ -1,3 +1,4 @@
+
 import React, { Component } from 'react';
 import {
     NativeModules,
@@ -6,6 +7,7 @@ import {
     Image,
     View,
     Animated,
+    Platform
 } from 'react-native';
 import Svg, { Polygon } from 'react-native-svg';
 
@@ -17,10 +19,12 @@ class CustomCrop extends Component {
         this.state = {
             viewHeight:
                 Dimensions.get('window').width * (props.height / props.width),
+            viewWidth: Dimensions.get('window').width,
             height: props.height,
             width: props.width,
             image: props.initialImage,
             moving: false,
+            screenRatio: Dimensions.get('screen').height / Dimensions.get('screen').width
         };
 
         this.state = {
@@ -28,48 +32,68 @@ class CustomCrop extends Component {
             topLeft: new Animated.ValueXY(
                 props.rectangleCoordinates
                     ? this.imageCoordinatesToViewCoordinates(
-                          props.rectangleCoordinates.topLeft,
-                          true,
-                      )
+                        {
+                            x: Platform.OS === 'android' ? props.rectangleCoordinates.topLeft.x
+                                : props.rectangleCoordinates.topLeft.x * this.getCoordinateScaling(),
+                            y: Platform.OS === 'android' ? props.rectangleCoordinates.topLeft.y
+                                : props.rectangleCoordinates.topLeft.y * this.getCoordinateScaling()
+                        },
+                        true,
+                    )
                     : { x: 100, y: 100 },
             ),
             topRight: new Animated.ValueXY(
                 props.rectangleCoordinates
                     ? this.imageCoordinatesToViewCoordinates(
-                          props.rectangleCoordinates.topRight,
-                          true,
-                      )
-                    : { x: Dimensions.get('window').width - 100, y: 100 },
+                        {
+                            x: Platform.OS === 'android' ?
+                                props.rectangleCoordinates.topRight.x :
+                                props.rectangleCoordinates.bottomLeft.x * this.getCoordinateScaling(),
+                            y: Platform.OS === 'android' ? props.rectangleCoordinates.topRight.y
+                                : props.rectangleCoordinates.bottomLeft.y * this.getCoordinateScaling()
+                        },
+                        true,
+                    )
+                    : { x: this.state.viewWidth - 100, y: 100 },
             ),
             bottomLeft: new Animated.ValueXY(
                 props.rectangleCoordinates
                     ? this.imageCoordinatesToViewCoordinates(
-                          props.rectangleCoordinates.bottomLeft,
-                          true,
-                      )
+                        {
+                            x: Platform.OS === 'android' ?
+                                props.rectangleCoordinates.bottomLeft.x :
+                                props.rectangleCoordinates.topRight.x * this.getCoordinateScaling(),
+                            y: Platform.OS === 'android' ? props.rectangleCoordinates.bottomLeft.y
+                                : props.rectangleCoordinates.topRight.y * this.getCoordinateScaling()
+                        },
+                        true,
+                    )
                     : { x: 100, y: this.state.viewHeight - 100 },
             ),
             bottomRight: new Animated.ValueXY(
                 props.rectangleCoordinates
                     ? this.imageCoordinatesToViewCoordinates(
-                          props.rectangleCoordinates.bottomRight,
-                          true,
-                      )
+                        {
+                            x: Platform.OS === 'android' ?
+                                props.rectangleCoordinates.bottomRight.x :
+                                props.rectangleCoordinates.bottomRight.x * this.getCoordinateScaling(),
+                            y: Platform.OS === 'android' ? props.rectangleCoordinates.bottomRight.y
+                                : props.rectangleCoordinates.bottomRight.y * this.getCoordinateScaling()
+                        },
+                        true,
+                    )
                     : {
-                          x: Dimensions.get('window').width - 100,
-                          y: this.state.viewHeight - 100,
-                      },
+                        x: this.state.viewWidth - 100,
+                        y: this.state.viewHeight - 100,
+                    },
             ),
         };
         this.state = {
             ...this.state,
-            overlayPositions: `${this.state.topLeft.x._value},${
-                this.state.topLeft.y._value
-            } ${this.state.topRight.x._value},${this.state.topRight.y._value} ${
-                this.state.bottomRight.x._value
-            },${this.state.bottomRight.y._value} ${
-                this.state.bottomLeft.x._value
-            },${this.state.bottomLeft.y._value}`,
+            overlayPositions: `${this.state.topLeft.x._value},${this.state.topLeft.y._value
+                } ${this.state.topRight.x._value},${this.state.topRight.y._value} ${this.state.bottomRight.x._value
+                },${this.state.bottomRight.y._value} ${this.state.bottomLeft.x._value
+                },${this.state.bottomLeft.y._value}`,
         };
 
         this.panResponderTopLeft = this.createPanResponser(this.state.topLeft);
@@ -129,37 +153,39 @@ class CustomCrop extends Component {
 
     updateOverlayString() {
         this.setState({
-            overlayPositions: `${this.state.topLeft.x._value},${
-                this.state.topLeft.y._value
-            } ${this.state.topRight.x._value},${this.state.topRight.y._value} ${
-                this.state.bottomRight.x._value
-            },${this.state.bottomRight.y._value} ${
-                this.state.bottomLeft.x._value
-            },${this.state.bottomLeft.y._value}`,
+            overlayPositions: `${this.state.topLeft.x._value},${this.state.topLeft.y._value
+                } ${this.state.topRight.x._value},${this.state.topRight.y._value} ${this.state.bottomRight.x._value
+                },${this.state.bottomRight.y._value} ${this.state.bottomLeft.x._value
+                },${this.state.bottomLeft.y._value}`,
         });
     }
 
     imageCoordinatesToViewCoordinates(corner) {
         return {
-            x: (corner.x * Dimensions.get('window').width) / this.state.width,
+            x: (corner.x * this.state.viewWidth) / this.state.width,
             y: (corner.y * this.state.viewHeight) / this.state.height,
         };
     }
 
     viewCoordinatesToImageCoordinates(corner) {
         return {
-            x:
-                (corner.x._value / Dimensions.get('window').width) *
+            x: (corner.x._value / this.state.viewWidth) *
                 this.state.width,
-            y: (corner.y._value / this.state.viewHeight) * this.state.height,
+            y: (corner.y._value / this.state.viewHeight) * this.state.height
         };
+    };
+
+    getCoordinateScaling() {
+        return (this.props.width / this.state.viewHeight) * 1.20
     }
 
     render() {
+
         return (
             <View
                 style={{
-                    flex: 1,
+                    height: this.state.viewHeight,
+                    width: this.state.viewWidth,
                     alignItems: 'center',
                     justifyContent: 'flex-end',
                 }}
@@ -180,7 +206,7 @@ class CustomCrop extends Component {
                     />
                     <Svg
                         height={this.state.viewHeight}
-                        width={Dimensions.get('window').width}
+                        width={this.state.viewWidth}
                         style={{ position: 'absolute', left: 0, top: 0 }}
                     >
                         <AnimatedPolygon
@@ -202,56 +228,76 @@ class CustomCrop extends Component {
                         <View
                             style={[
                                 s(this.props).handlerI,
-                                { left: -10, top: -10 },
+                                { left: 0, top: 0 },
                             ]}
                         />
                         <View
                             style={[
                                 s(this.props).handlerRound,
-                                { left: 31, top: 31 },
+                                { left: 50, top: 50 },
+                            ]}
+                        />
+                        <View
+                            style={[
+                                s(this.props).handlerRoundOuter,
+                                { left: 30, top: 30 },
                             ]}
                         />
                     </Animated.View>
-                    <Animated.View
-                        {...this.panResponderTopRight.panHandlers}
-                        style={[
-                            this.state.topRight.getLayout(),
-                            s(this.props).handler,
-                        ]}
-                    >
-                        <View
+                    <>
+                        <Animated.View
+                            {...this.panResponderTopRight.panHandlers}
                             style={[
-                                s(this.props).handlerI,
-                                { left: 10, top: -10 },
+                                this.state.topRight.getLayout(),
+                                s(this.props).handler,
                             ]}
-                        />
-                        <View
+                        >
+                            <View
+                                style={[
+                                    s(this.props).handlerI,
+                                    { left: 0, top: 0 },
+                                ]}
+                            />
+                            <View
+                                style={[
+                                    s(this.props).handlerRound,
+                                    { left: 51, bottom: 51 },
+                                ]}
+                            />
+                            <View
+                                style={[
+                                    s(this.props).handlerRoundOuter,
+                                    { left: 30, bottom: 30 },
+                                ]}
+                            />
+                        </Animated.View>
+                        <Animated.View
+                            {...this.panResponderBottomLeft.panHandlers}
                             style={[
-                                s(this.props).handlerRound,
-                                { right: 31, top: 31 },
+                                this.state.bottomLeft.getLayout(),
+                                s(this.props).handler,
                             ]}
-                        />
-                    </Animated.View>
-                    <Animated.View
-                        {...this.panResponderBottomLeft.panHandlers}
-                        style={[
-                            this.state.bottomLeft.getLayout(),
-                            s(this.props).handler,
-                        ]}
-                    >
-                        <View
-                            style={[
-                                s(this.props).handlerI,
-                                { left: -10, top: 10 },
-                            ]}
-                        />
-                        <View
-                            style={[
-                                s(this.props).handlerRound,
-                                { left: 31, bottom: 31 },
-                            ]}
-                        />
-                    </Animated.View>
+                        >
+                            <View
+                                style={[
+                                    s(this.props).handlerI,
+                                    { left: 0, top: 0 },
+                                ]}
+                            />
+                            <View
+                                style={[
+                                    s(this.props).handlerRound,
+                                    { right: 47, top: 50 },
+                                ]}
+                            />
+                            <View
+                                style={[
+                                    s(this.props).handlerRoundOuter,
+                                    { right: 30, top: 30 },
+                                ]}
+                            />
+                        </Animated.View>
+                    </>
                     <Animated.View
                         {...this.panResponderBottomRight.panHandlers}
                         style={[
@@ -262,13 +308,19 @@ class CustomCrop extends Component {
                         <View
                             style={[
                                 s(this.props).handlerI,
-                                { left: 10, top: 10 },
+                                { left: 0, top: 0 },
                             ]}
                         />
                         <View
                             style={[
                                 s(this.props).handlerRound,
-                                { right: 31, bottom: 31 },
+                                { right: 47, bottom: 53 },
+                            ]}
+                        />
+                        <View
+                            style={[
+                                s(this.props).handlerRoundOuter,
+                                { right: 27, bottom: 33 },
                             ]}
                         />
                     </Animated.View>
@@ -280,29 +332,33 @@ class CustomCrop extends Component {
 
 const s = (props) => ({
     handlerI: {
-        borderRadius: 0,
-        height: 20,
-        width: 20,
+        borderRadius: 50,
+        height: 10,
+        width: 0,
         backgroundColor: props.handlerColor || 'blue',
+        zIndex: 9999
     },
     handlerRound: {
-        width: 39,
+        width: 31.2,
         position: 'absolute',
-        height: 39,
+        height: 29.6,
         borderRadius: 100,
         backgroundColor: props.handlerColor || 'blue',
+        zIndex: 9999,
+        borderWidth: 2,
+        borderColor: props.borderColor || 'blue'
+    },
+    handlerRoundOuter: {
+        width: 70.2,
+        position: 'absolute',
+        height: 70.2,
+        borderRadius: 150,
+        backgroundColor: props.handlerOuterColor || 'blue',
+        zIndex: 9998
     },
     image: {
         width: Dimensions.get('window').width,
         position: 'absolute',
-    },
-    bottomButton: {
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: 'blue',
-        width: 70,
-        height: 70,
-        borderRadius: 100,
     },
     handler: {
         height: 140,
