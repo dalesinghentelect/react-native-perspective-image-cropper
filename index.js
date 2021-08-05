@@ -23,6 +23,7 @@ class CustomCrop extends Component {
             height: props.height,
             width: props.width,
             image: props.initialImage,
+            initialImagePath: props.initialImagePath,
             moving: false,
             screenRatio: Dimensions.get('screen').height / Dimensions.get('screen').width
         };
@@ -146,7 +147,7 @@ class CustomCrop extends Component {
         };
         NativeModules.CustomCropManager.crop(
             coordinates,
-            this.state.image,
+            this.state.initialImagePath,
             (err, res) => this.props.updateImage(res.image, coordinates),
         );
     }
