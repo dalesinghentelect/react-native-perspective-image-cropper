@@ -131,8 +131,11 @@ class CustomCrop extends Component {
     }
 
     crop() {
+        
         const coordinates = {
-            topLeft: this.viewCoordinatesToImageCoordinates(this.state.topLeft),
+            topLeft: this.viewCoordinatesToImageCoordinates(
+                this.state.topLeft
+                ),
             topRight: this.viewCoordinatesToImageCoordinates(
                 this.state.topRight,
             ),
@@ -202,7 +205,7 @@ class CustomCrop extends Component {
                             s(this.props).image,
                             { height: this.state.viewHeight },
                         ]}
-                        resizeMode="contain"
+                        resizeMode="cover"
                         source={{ uri: this.state.image }}
                     />
                     <Svg
